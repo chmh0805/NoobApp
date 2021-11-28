@@ -25,23 +25,38 @@ const wss = new WebSocket.Server({ server }); // Create WebSocket Server With ws
 
 const socketList = [];
 
+const pushToSocketList = (socket) => {
+  return socketList.push(socket) - 1;
+};
+
 // EventListener When WebSocket Connected
 wss.on('connection', (socket) => {
-  socketList.push(socket);
-  console.log(socket);
+  // socket.send('hello !!!'); // Server -> Client send
+  socket['nickname'] = undefined;
+  socket['socketIndex'] = pushToSocketList(socket);
   console.log('Connected to Client 😜');
 
   socket.on('close', () => {
     // When Client disconnected
     console.log('Disconnected from Client 😂');
+    socketList.splice(socket['socketIndex'], 1);
   });
-  socket.send('hello !!!'); // Server -> Client send
 
-  socket.on('message', (message) => {
+  socket.on('message', (msg) => {
     // When Server get sth from Client
-    socketList.forEach((socket) => {
-      socket.send(message.toString());
-    });
+    const message = JSON.parse(msg);
+    switch (message.type) {
+      case 'message':
+        socketList.forEach((_socket) => {
+          if (_socket.socketIndex !== socket.socketIndex) {
+            _socket.send(`${socket.nickname}: ${message.payload}`);
+          }
+        });
+        break;
+      case 'nickname':
+        socket['nickname'] = message.payload;
+        break;
+    }
   });
 });
 
