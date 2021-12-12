@@ -7,14 +7,26 @@ html(lang="en")
     title Noom
     link(rel="stylesheet", href="https://unpkg.com/mvp.css")
   body 
-    header 
+    header(style={'padding-bottom': '0px'})
       h1 Noom
-    main 
-      ul
-      form#nickname
-        input(type="text", placeholder="choose a nickname", required)
-        button Save Nickname
-      form#message
-        input(type="text", placeholder="write a msg", required)
-        button Send
+      div(style={'display':'flex', 'justify-content':'space-between', 'align-items': 'center'}) 
+        span#nickname-span(style={'font-size': '24px'})
+        button#resetNicknameBtn(hidden=true) Reset Nickname
+        button#exitRoomBtn(hidden=true) Exit Room
+    main(style={'padding-top': '20px'})
+      div#nickname-div 
+        form
+          input(type="text", placeholder="Enter Nickname", required)
+          button Set Nickname 
+      div#welcome-div(hidden=true)
+        form
+          input(type="text", placeholder="Enter room name", required)
+          button Enter Room
+      div#room-div(hidden=true) 
+        h3(style={'margin-bottom': '30px'})
+        ul 
+        form#msg
+          input(type='text', placeholder="message", required)
+          button Send
+    script(src="/socket.io/socket.io.js") 
     script(src="/public/js/app.js") 

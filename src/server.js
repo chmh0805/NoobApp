@@ -1,6 +1,7 @@
+import { doesNotMatch } from 'assert';
 import express from 'express';
 import http from 'http';
-import WebSocket from 'ws';
+import SocketIO from 'socket.io';
 
 const app = express();
 
@@ -15,49 +16,47 @@ app.use('/public', express.static(__dirname + '/public'));
 app.get('/', (_, res) => res.render('home'));
 app.get('/*', (_, res) => res.redirect('/'));
 
-// Listening
-const handleListen = () =>
-  console.log('Listening on http[ws]://localhost:3000');
-// app.listen(3000, handleListen); // HTTP
-
-const server = http.createServer(app); // Create Http Server With Express.js
-const wss = new WebSocket.Server({ server }); // Create WebSocket Server With ws On Http Server
-
-const socketList = [];
-
-const pushToSocketList = (socket) => {
-  return socketList.push(socket) - 1;
+const handleListen = () => {
+  console.log('Waiting Clients...');
 };
 
-// EventListener When WebSocket Connected
-wss.on('connection', (socket) => {
-  // socket.send('hello !!!'); // Server -> Client send
-  socket['nickname'] = undefined;
-  socket['socketIndex'] = pushToSocketList(socket);
-  console.log('Connected to Client 😜');
+const httpServer = http.createServer(app); // Create Http Server With Express.js
+const wsServer = SocketIO(httpServer);
 
-  socket.on('close', () => {
-    // When Client disconnected
-    console.log('Disconnected from Client 😂');
-    socketList.splice(socket['socketIndex'], 1);
+wsServer.on('connection', (socket) => {
+  socket.onAny((event) => {
+    console.log(`Socket Event: ${event}`);
   });
-
-  socket.on('message', (msg) => {
-    // When Server get sth from Client
-    const message = JSON.parse(msg);
-    switch (message.type) {
-      case 'message':
-        socketList.forEach((_socket) => {
-          if (_socket.socketIndex !== socket.socketIndex) {
-            _socket.send(`${socket.nickname}: ${message.payload}`);
-          }
-        });
-        break;
-      case 'nickname':
-        socket['nickname'] = message.payload;
-        break;
-    }
+  socket.on('nickname', (nickname, done) => {
+    socket['nickname'] = nickname;
+    done(nickname);
+  });
+  socket.on('resetNickname', (done) => {
+    socket['nickname'] = undefined;
+    done();
+  });
+  socket.on('enter_room', (roomName, done) => {
+    socket.join(roomName);
+    done();
+    socket.to(roomName).emit('welcome', socket.nickname);
+  });
+  socket.on('disconnecting', () => {
+    socket.rooms.forEach((room) => {
+      socket.to(room).emit('bye', socket.nickname);
+    });
+  });
+  socket.on('exitRoom', (roomName, done) => {
+    socket.to(roomName).emit('bye', socket.nickname);
+    socket.leave(roomName);
+    done();
+  });
+  socket.on('new_message', (roomName, message, done) => {
+    socket.to(roomName).emit('new_message', `${socket.nickname}: ${message}`);
+    done();
+  });
+  socket.on('nickname', (nickname) => {
+    socket['nickname'] = nickname;
   });
 });
 
-server.listen(3000, handleListen);
+httpServer.listen(3000, handleListen);
