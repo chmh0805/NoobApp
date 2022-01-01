@@ -1,4 +1,3 @@
-import { doesNotMatch } from 'assert';
 import express from 'express';
 import http from 'http';
 import SocketIO from 'socket.io';
@@ -32,10 +31,14 @@ function publicRooms() {
   const publicRooms = [];
   rooms.forEach((_, k) => {
     if (sids.get(k) === undefined) {
-      publicRooms.push(k);
+      publicRooms.push({ roomName: k, roomSize: countRoom(k) });
     }
   });
   return publicRooms;
+}
+
+function countRoom(roomName) {
+  return wsServer.sockets.adapter.rooms.get(roomName)?.size;
 }
 
 wsServer.on('connection', (socket) => {
@@ -53,20 +56,20 @@ wsServer.on('connection', (socket) => {
   });
   socket.on('enter_room', (roomName, done) => {
     socket.join(roomName);
-    done();
-    socket.to(roomName).emit('welcome', socket.nickname);
+    done(countRoom(roomName));
+    socket.to(roomName).emit('welcome', socket.nickname, countRoom(roomName));
     wsServer.sockets.emit('room_change', publicRooms());
   });
   socket.on('disconnecting', () => {
     socket.rooms.forEach((room) => {
-      socket.to(room).emit('bye', socket.nickname);
+      socket.to(room).emit('bye', socket.nickname, countRoom(room) - 1);
     });
   });
   socket.on('disconnect', () => {
     wsServer.sockets.emit('room_change', publicRooms());
   });
   socket.on('exitRoom', (roomName, done) => {
-    socket.to(roomName).emit('bye', socket.nickname);
+    socket.to(roomName).emit('bye', socket.nickname, countRoom(roomName) - 1);
     socket.leave(roomName);
     done();
     wsServer.sockets.emit('room_change', publicRooms());

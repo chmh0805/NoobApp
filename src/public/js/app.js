@@ -71,12 +71,12 @@ function showRoomList() {
   resetNicknameBtn.addEventListener('click', handleResetNicknameSubmit);
 }
 
-function showRoom() {
+function showRoom(roomCount) {
   resetNicknameBtn.hidden = true;
   welcomeDiv.hidden = true;
   room.hidden = false;
   const roomName_h3 = room.querySelector('h3');
-  roomName_h3.innerText = `Room ${roomName}`;
+  roomName_h3.innerText = `Room ${roomName} (${roomCount})`;
   const msgForm = room.querySelector('#msg');
   msgForm.addEventListener('submit', handleMessageSubmit);
   exitRoomBtn.hidden = false;
@@ -100,11 +100,15 @@ enterRoomForm.addEventListener('submit', (e) => {
   input.value = '';
 });
 
-socket.on('welcome', (user) => {
+socket.on('welcome', (user, newCount) => {
+  const roomName_h3 = room.querySelector('h3');
+  roomName_h3.innerText = `Room ${roomName} (${newCount})`;
   addMessage(`${user} Entered!`);
 });
 
-socket.on('bye', (user) => {
+socket.on('bye', (user, newCount) => {
+  const roomName_h3 = room.querySelector('h3');
+  roomName_h3.innerText = `Room ${roomName} (${newCount})`;
   addMessage(`${user} left ㅠㅠ`);
 });
 
@@ -116,9 +120,9 @@ socket.on('room_change', (rooms) => {
   if (rooms.length === 0) {
     return; // do nothing if rooms not exist.
   }
-  rooms.forEach((room) => {
+  rooms.forEach((roomObject) => {
     const li = document.createElement('li');
-    li.innerText = room;
+    li.innerText = `${roomObject.roomName} (${roomObject.roomSize}) `;
     roomList.append(li);
   });
 });
