@@ -109,3 +109,16 @@ socket.on('bye', (user) => {
 });
 
 socket.on('new_message', addMessage);
+
+socket.on('room_change', (rooms) => {
+  const roomList = welcomeDiv.querySelector('ul');
+  roomList.innerHTML = '';
+  if (rooms.length === 0) {
+    return; // do nothing if rooms not exist.
+  }
+  rooms.forEach((room) => {
+    const li = document.createElement('li');
+    li.innerText = room;
+    roomList.append(li);
+  });
+});
